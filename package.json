@@ -1,0 +1,23 @@
+{
+  "name": "@devicai/sdk",
+  "version": "0.1.0",
+  "description": "Official Devic SDK for TypeScript and JavaScript",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "package.json", "README.md"],
+  "engines": { "node": ">=18" },
+  "repository": { "type": "git", "url": "git+https://github.com/devicai/sdk.git" },
+  "homepage": "https://github.com/devicai/sdk#readme",
+  "keywords": ["devic", "ai", "agents", "assistants", "sdk"],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "node --test dist/test/*.test.js",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "typescript": "^5.7.0"
+  }
+}
