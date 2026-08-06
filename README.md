@@ -94,6 +94,34 @@ same one your own session cookie already accepts. Do set `onSessionExpired`:
 there is nothing to renew from, so without it the widget stops answering at the
 exact moment the user's login has expired too.
 
+### Making it compulsory
+
+All of the above is a convention until the key is unable to do anything else.
+In the Devic console, an API key has an identity mode:
+
+| Mode | What the key can do |
+|---|---|
+| `open` (default) | Anything it is allowed, for whichever tenant it declares beside itself. |
+| `signed` | Mint tenant sessions, and nothing else. Every other `/api/v1` call with the key alone answers `401`. |
+
+Put the SDK's key in `signed` and the mistake stops being possible: nobody can
+paste that key into a page and reach a customer's data with it, because the only
+thing it can do is ask for a token that pins the customer.
+
+```ts
+const devic = new Devic({ apiKey: process.env.DEVIC_API_KEY! });
+
+await devic.auth('acme', 'user-7').session();   // the one thing it can do
+await devic.assistants.list();                  // 401 — and that is the point
+```
+
+Which means a `signed` key is for exactly this: minting sessions in front of a
+browser. Anything else your server does — provisioning assistants, reading
+costs, running agents — needs a second key left on `open`. Two keys, two jobs.
+
+A session cannot mint another session, so nothing that reaches the page can
+widen itself back.
+
 ## What is here
 
 | | |
@@ -144,6 +172,22 @@ try {
 new Devic({
   apiKey: process.env.DEVIC_API_KEY!,
   baseUrl: 'https://api.devic.ai',   // default
+  source: 'sdk',                     // how the API files this traffic
+});
+```
+
+`source` only matters if you are building a tool on top of this package and want
+its usage counted apart from your own.
+
+The two remaining options are for callers whose credential is not a static API
+key but a token that expires — an internal service passing a user's access
+token, for instance:
+
+```ts
+new Devic({
+  apiKey: accessToken,
+  refreshToken: () => renew(),          // called after a 401, then retried once
+  shouldRefreshProactively: () => isExpired(accessToken),
 });
 ```
 
