@@ -458,9 +458,54 @@ export interface TenantUsageRule {
   limit: number;
   current: number;
   percent: number;
+  /**
+   * The part of `current` that was added through `addUsage` rather than
+   * measured by Devic. What Devic measured is `current - externalConsumption`.
+   * Absent when nothing was added to this window.
+   */
+  externalConsumption?: number;
   resetsAt?: number;
   origin?: string;
   tierId?: string;
+}
+
+/** Consumption to charge a tenant for that Devic never saw. */
+export interface AddTenantUsageInput {
+  /** Tokens to add. At least one of `tokens`/`cost` must be above zero. */
+  tokens?: number;
+  /** Cost to add, in the same unit as the tenant's cost limits. */
+  cost?: number;
+  /**
+   * What this usage came from — `crm-sync`, `pdf-ocr`, your own product's name.
+   * Lowercase letters, digits, `-` and `_`, up to 40 characters. It is what the
+   * usage panel groups the breakdown by, so a stable tag per origin is worth
+   * more than a precise one.
+   *
+   * @default 'external'
+   */
+  source?: string;
+  /** A note for your own auditing. Devic does not store it on the counters. */
+  reason?: string;
+  /** Charge one end user within the tenant rather than the tenant at large. */
+  subtenantId?: string;
+}
+
+export interface AddedTenantUsage {
+  tenantId: string;
+  subtenantId?: string;
+  /** The tag it was filed under, lowercased. */
+  source: string;
+  applied: {
+    tokens: number;
+    cost: number;
+    /**
+     * False when the tenant has no plan and no ad-hoc rules: the usage is
+     * recorded for cost reporting, but there was no allowance to spend.
+     */
+    countedTowardLimits: boolean;
+  };
+  /** Every rule AFTER the addition, so the remaining allowance is right here. */
+  usage: TenantUsageRule[];
 }
 
 export interface TenantUsage {
