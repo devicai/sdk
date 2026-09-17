@@ -159,6 +159,7 @@ describe('what a tenant scope deliberately cannot reach', () => {
       'skills',
       'triggers',
       'tenantSessions',
+      'tenants',
     ]) {
       assert.equal(
         acme[forbidden],
@@ -178,8 +179,70 @@ describe('what a tenant scope deliberately cannot reach', () => {
       'triggers',
       'integrations',
       'tenantSessions',
+      'tenants',
     ]) {
       assert.notEqual(d[present], undefined, `${present} is missing`);
     }
+  });
+});
+
+describe('charging a tenant for usage Devic never saw', () => {
+  test('posts the amounts to the tenant-admin route', async () => {
+    const f = withFetch(() => ({}));
+    await devic().tenants.addUsage('acme', {
+      tokens: 1500,
+      cost: 0.42,
+      source: 'crm-sync',
+    });
+    assert.equal(f.calls[0].url, 'https://api.test/api/v1/tenant-admin/acme/add-usage');
+    assert.equal(f.calls[0].init?.method, 'POST');
+    assert.deepEqual(JSON.parse(String(f.calls[0].init?.body)), {
+      tokens: 1500,
+      cost: 0.42,
+      source: 'crm-sync',
+    });
+    f.restore();
+  });
+
+  test('a subtenant is addressed by path, not smuggled in the body', async () => {
+    const f = withFetch(() => ({}));
+    await devic().tenants.addUsage('acme', { tokens: 10, subtenantId: 'user-7' });
+    assert.equal(
+      f.calls[0].url,
+      'https://api.test/api/v1/tenant-admin/acme/subtenants/user-7/add-usage',
+    );
+    assert.deepEqual(JSON.parse(String(f.calls[0].init?.body)), { tokens: 10 });
+    f.restore();
+  });
+
+  test('escapes ids rather than letting them shape the path', async () => {
+    const f = withFetch(() => ({}));
+    await devic().tenants.addUsage('acme/corp', {
+      tokens: 1,
+      subtenantId: 'user 7',
+    });
+    assert.equal(
+      f.calls[0].url,
+      'https://api.test/api/v1/tenant-admin/acme%2Fcorp/subtenants/user%207/add-usage',
+    );
+    f.restore();
+  });
+
+  test('refuses a call that would add nothing, before spending a round trip', async () => {
+    await assert.rejects(
+      () => devic().tenants.addUsage('acme', {}),
+      /tokens or cost above zero/,
+    );
+    await assert.rejects(
+      () => devic().tenants.addUsage('acme', { tokens: 0, cost: 0 }),
+      /tokens or cost above zero/,
+    );
+  });
+
+  test('refuses an empty tenant, which has nobody to charge', async () => {
+    await assert.rejects(
+      () => devic().tenants.addUsage('', { tokens: 5 }),
+      /tenantId is required/,
+    );
   });
 });

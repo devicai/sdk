@@ -135,6 +135,7 @@ widen itself back.
 | `devic.integrations` | the app catalogue and the **workspace's** connected accounts |
 | `devic.triggers` | starting agents and assistants from app events |
 | `devic.tenantSessions` | minting tokens that prove which customer is calling |
+| `devic.tenants` | charging a customer for usage Devic never measured |
 
 And on `devic.auth(tenantId, subtenantId?)`:
 
@@ -147,6 +148,42 @@ And on `devic.auth(tenantId, subtenantId?)`:
 
 Anything not wrapped yet is reachable on `devic.client`, which is the HTTP
 client underneath.
+
+## Charging usage Devic never measured
+
+Not everything a customer consumes goes through Devic. A batch job in your own
+product, a third-party transcription, credits you meter yourself — if they
+should come out of the same allowance, add them:
+
+```ts
+const { applied, usage } = await devic.tenants.addUsage('acme-corp', {
+  tokens: 1500,
+  cost: 0.42,
+  source: 'crm-sync',
+});
+```
+
+It spends the allowance exactly like a call Devic did measure: go past a
+window's ceiling this way and the next real request is refused with the same
+`429`. `usage` comes back as it stands after the addition, so the allowance
+left needs no second call, and every rule carries `externalConsumption` — the
+part of its `current` that was added rather than measured.
+
+`source` is a free tag (`[a-z0-9_-]`, defaults to `external`) that keeps
+origins apart in the usage panel. Pass `subtenantId` to charge one end user
+within the tenant.
+
+Two things worth knowing:
+
+- **It only adds.** Negative amounts are refused; taking consumption back off a
+  tenant means resetting its counters.
+- **`applied.countedTowardLimits` can be `false`** — a tenant with no plan and
+  no ad-hoc rules has no allowance to spend. The usage is still recorded for
+  cost reporting.
+
+This lives on `devic`, not on `devic.auth(…)`, and the API agrees: a tenant
+session is refused, which is what stops a customer writing their own usage
+down. Call it from your server with a full API key.
 
 ## Errors
 

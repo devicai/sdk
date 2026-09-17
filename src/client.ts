@@ -23,6 +23,8 @@ import type {
   TenantIntegrationsQuery,
   TenantSession,
   TenantUsage,
+  AddTenantUsageInput,
+  AddedTenantUsage,
 } from './types.js';
 import { DevicApiError } from './errors.js';
 
@@ -1021,6 +1023,38 @@ export class DevicApiClient {
       ? `/api/v1/tenant-usage/${encodeURIComponent(tenantId)}/subtenants/${encodeURIComponent(subtenantId)}`
       : `/api/v1/tenant-usage/${encodeURIComponent(tenantId)}`;
     return this.request<TenantUsage>(path);
+  }
+
+  /**
+   * Charges a tenant for consumption Devic never measured — a batch job in your
+   * own product, a third-party transcription, credits you meter yourself.
+   *
+   * It spends the tenant's allowance exactly like a call Devic did measure:
+   * go past a window's ceiling this way and the next real request is refused.
+   * It only ever adds; clearing counters is a different call.
+   *
+   * An administrative action, so it needs a full API key — a key restricted for
+   * the browser is refused, and so is a tenant session, which is what stops a
+   * customer from writing their own usage down.
+   */
+  async addTenantUsage(
+    tenantId: string,
+    input: AddTenantUsageInput,
+  ): Promise<AddedTenantUsage> {
+    const { subtenantId, ...body } = input ?? {};
+    if (!(body.tokens || 0) && !(body.cost || 0)) {
+      throw new Error(
+        'addUsage needs a tokens or cost above zero — there is nothing to add otherwise.',
+      );
+    }
+    const base = `/api/v1/tenant-admin/${encodeURIComponent(tenantId)}`;
+    const path = subtenantId
+      ? `${base}/subtenants/${encodeURIComponent(subtenantId)}/add-usage`
+      : `${base}/add-usage`;
+    return this.request<AddedTenantUsage>(path, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
   }
 
   async getTenantUsageHistory(

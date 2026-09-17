@@ -10,6 +10,7 @@ import {
   Triggers,
 } from './resources/workspace.js';
 import { TenantSessions } from './resources/tenantSessions.js';
+import { Tenants } from './resources/tenants.js';
 import { TenantScope } from './tenant.js';
 
 const DEFAULT_BASE_URL = 'https://api.devic.ai';
@@ -71,6 +72,8 @@ export class Devic {
   readonly triggers: Triggers;
   /** Tokens that prove which of your customers is calling. Server-side only. */
   readonly tenantSessions: TenantSessions;
+  /** Actions ABOUT a customer rather than on their behalf — charging usage. */
+  readonly tenants: Tenants;
 
   constructor(config: DevicConfig) {
     if (!config?.apiKey) {
@@ -97,6 +100,7 @@ export class Devic {
     this.integrations = new Integrations(this.client);
     this.triggers = new Triggers(this.client);
     this.tenantSessions = new TenantSessions(this.client);
+    this.tenants = new Tenants(this.client);
   }
 
   /**
@@ -138,6 +142,7 @@ export {
   Triggers,
 } from './resources/workspace.js';
 export { TenantSessions } from './resources/tenantSessions.js';
+export { Tenants } from './resources/tenants.js';
 export type {
   IssueTenantSessionInput,
   TenantSession as IssuedTenantSession,
