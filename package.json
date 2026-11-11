@@ -1,6 +1,6 @@
 {
   "name": "@devicai/sdk",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Official Devic SDK for TypeScript and JavaScript",
   "license": "MIT",
   "main": "./dist/index.js",
