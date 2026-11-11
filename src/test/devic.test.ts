@@ -246,3 +246,21 @@ describe('charging a tenant for usage Devic never saw', () => {
     );
   });
 });
+
+describe('naming a new conversation', () => {
+  for (const asyncMode of [false, true]) {
+    test(`carries chatName and tenant scope (async=${asyncMode})`, async () => {
+      const f = withFetch(() => asyncMode ? { chatUid: 'new-chat' } : []);
+      try {
+        const assistants = devic().auth('acme', 'u-7').assistants;
+        const dto = { message: 'hola', chatName: 'Revisión del contrato 📄' };
+        if (asyncMode) await assistants.chatAsync('bot', dto);
+        else await assistants.chat('bot', dto);
+        assert.deepEqual(JSON.parse(f.calls[0].init!.body as string), {
+          ...dto, tenantId: 'acme', subtenantId: 'u-7',
+        });
+        assert.equal(f.calls[0].url, 'https://api.test/api/v1/assistants/bot/messages' + (asyncMode ? '?async=true' : ''));
+      } finally { f.restore(); }
+    });
+  }
+});

@@ -41,6 +41,26 @@ under your workspace instead of under your customer.
 And what a customer must not do is simply not reachable from there. There is no
 `acme.toolServers`, no `acme.projects`, no `acme.documents`.
 
+## Naming a conversation
+
+Pass `chatName` with the first message, in either sync or async mode:
+
+```ts
+await devic.assistants.chat('support-bot', {
+  message: 'Help me get started',
+  chatName: 'Customer onboarding',
+});
+await devic.auth('acme').assistants.chatAsync('support-bot', {
+  message: 'Review the contract',
+  chatName: 'Contract review',
+});
+```
+
+The name is trimmed and saved when the conversation is created, including with
+an input delay. Existing conversations are never renamed by this field. Omit it
+or pass a blank string to keep automatic naming. The low-level
+`DevicApiClient.sendMessage` and `sendMessageAsync` accept the same field.
+
 ## Tenant sessions — for the browser
 
 Your page needs a credential. Sending it your API key makes the tenant a claim:
